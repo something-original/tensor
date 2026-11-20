@@ -1,0 +1,1 @@
+from .db import check_init_database
