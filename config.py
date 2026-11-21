@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
+root_dir = Path(__file__).resolve().parent
 
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "9999"))
@@ -13,3 +15,4 @@ DB_PORT = int(os.getenv("DB_PORT", "3333"))
 DB_NAME = os.getenv("DB_NAME", "tensor")
 
 DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PWD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+FILE_PATH = os.path.join(root_dir, "data/people.json")
