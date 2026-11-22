@@ -16,9 +16,32 @@ insert_employees_data = """
 """
 
 select_people_by_id = """
-    WITH
-        offices AS (SELECT id FROM employees WHERE "type" = 1),
-        departments AS (SELECT id, parent_id FROM employees WHERE "type" = 2),
-        people AS (SELECT id, parent_id, name FROM empolyees WHERE "type" = 3)
-        department_id AS (SELECT parent_id FROM employees WHERE id = {employee_id})
-"""
+    WITH RECURSIVE employee_hierarchy AS (
+        SELECT id, parent_id, name, type
+        FROM employees
+        WHERE id = :employee_id
+
+        UNION ALL
+
+        SELECT e.id, e.parent_id, e.name, e.type
+        FROM employees e
+        INNER JOIN employee_hierarchy eh ON e.id = eh.parent_id
+        WHERE eh.type != 1
+    ),
+    office AS (
+        SELECT id FROM employee_hierarchy WHERE type = 1
+    ),
+    all_employees_in_office AS (
+
+        SELECT id, parent_id, name, type
+        FROM employees
+        WHERE id = (SELECT id FROM office)
+
+        UNION ALL
+
+        SELECT e.id, e.parent_id, e.name, e.type
+        FROM employees e
+        INNER JOIN all_employees_in_office aeo ON e.parent_id = aeo.id
+    )
+    SELECT name FROM all_employees_in_office WHERE "type" = 3;
+    """

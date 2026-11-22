@@ -1,1 +1,1 @@
-from .db import check_init_database, get_session
+from .db import check_init_database, get_session, get_people_in_office_by_id

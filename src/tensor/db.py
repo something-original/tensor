@@ -41,5 +41,9 @@ async def check_init_database(db_url: str, file_path: str) -> None:
 
 
 async def get_people_in_office_by_id(session: AsyncSession, employee_id: int) -> list[str]:
-    res = await session.execute(select_people_by_id.format(employee_id=employee_id)).scalars().all() or []
+    res = (
+        await session.execute(
+            sa.text(select_people_by_id), {"employee_id": employee_id}
+        )
+    ).scalars().all() or []
     return res

@@ -4,6 +4,7 @@ from logging import INFO, Formatter, Logger, StreamHandler, getLogger
 
 import uvicorn
 from fastapi import FastAPI, APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import DB_URL, FILE_PATH, HOST, PORT
 from src.tensor import check_init_database, get_session, get_people_in_office_by_id
@@ -34,20 +35,20 @@ async def lifespan(app):
     yield
 
 
-employees_router = APIRouter(prefix="employees")
+employees_router = APIRouter(prefix="/employees")
 
 
-@employees_router.get("{employee_id}")
+@employees_router.get("/{employee_id}")
 async def get_people_in_office_by_employee_id(
+    employee_id: int,
     session: AsyncSession=Depends(get_session),
-    empolyee_id: int
 ) -> list:
-    res = await get_people_in_office_by_id(session, empolyee_id)
+    res = await get_people_in_office_by_id(session, employee_id)
     return res
 
 
 app = FastAPI(lifespan=lifespan)
-
+app.include_router(employees_router)
 
 if __name__ == "__main__":
     logger = setup_logger()
