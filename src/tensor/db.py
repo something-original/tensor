@@ -1,10 +1,10 @@
 import logging
 
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
 
 from .parser import parse_fill_tables
-from .sql_commands import create_empolyees_table, get_employees_count
+from .sql_commands import create_empolyees_table, get_employees_count, select_people_by_id
 
 engine = None
 async_session = None
@@ -38,3 +38,8 @@ async def check_init_database(db_url: str, file_path: str) -> None:
         
         logger.info("Initializing table")
         await parse_fill_tables(session, file_path)
+
+
+async def get_people_in_office_by_id(session: AsyncSession, employee_id: int) -> list[str]:
+    res = await session.execute(select_people_by_id.format(employee_id=employee_id)).scalars().all() or []
+    return res
