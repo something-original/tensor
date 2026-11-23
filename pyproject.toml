@@ -1,6 +1,6 @@
 [project]
 name = "tensor"
-version = "0.2.0"
+version = "0.3.0"
 description = "Консольное приложение: выборка сотрудников офиса по id сотрудника"
 readme = "README.md"
 authors = [
@@ -12,17 +12,13 @@ dependencies = [
     "python-dotenv>=1.0.1",
 ]
 
-[project.scripts]
-tensor = "tensor.cli:main"
-
 [dependency-groups]
 dev = [
     "ruff>=0.9",
 ]
 
-[build-system]
-requires = ["uv_build>=0.13.9,<0.14.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false
 
 [tool.ruff]
 line-length = 100
