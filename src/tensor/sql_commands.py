@@ -1,47 +1,85 @@
-create_empolyees_table = """
+"""SQL-запросы приложения.
+
+Запросы вынесены в отдельный модуль, чтобы их было удобно читать,
+анализировать и оптимизировать независимо от Python-кода.
+"""
+
+CREATE_EMPLOYEES_TABLE = """
     CREATE TABLE IF NOT EXISTS employees (
         id INTEGER PRIMARY KEY,
         parent_id INTEGER,
-        name VARCHAR NOT NULL,
-        type INTEGER NOT NULL
+        name TEXT NOT NULL,
+        type SMALLINT NOT NULL CHECK (type IN (1, 2, 3))
     );
 """
 
-get_employees_count = """
-    SELECT COUNT(*) FROM employees AS employees_count;
+# Индекс по parent_id нужен рекурсивным запросам: без него каждый шаг
+# обхода дерева превращается в последовательное сканирование таблицы.
+CREATE_PARENT_ID_INDEX = """
+    CREATE INDEX IF NOT EXISTS employees_parent_id_idx
+        ON employees (parent_id);
 """
 
-insert_employees_data = """
-    INSERT INTO employees("id", "parent_id", "name", "type") VALUES {values_clause};
+COUNT_EMPLOYEES = """
+    SELECT COUNT(*) FROM employees;
 """
 
-select_people_by_id = """
-    WITH RECURSIVE employee_hierarchy AS (
-        SELECT id, parent_id, name, type
+TRUNCATE_EMPLOYEES = """
+    TRUNCATE TABLE employees;
+"""
+
+# Шаблон для psycopg2.extras.execute_values: %s подставляет список кортежей.
+INSERT_EMPLOYEES = """
+    INSERT INTO employees (id, parent_id, name, type) VALUES %s;
+"""
+
+SELECT_EMPLOYEE_BY_ID = """
+    SELECT id, parent_id, name, type
+    FROM employees
+    WHERE id = %(employee_id)s;
+"""
+
+# 1. ancestors — поднимаемся от сотрудника вверх по parent_id до офиса (type = 1).
+# 2. office — находим идентификатор этого офиса.
+# 3. office_tree — спускаемся от офиса вниз по всему поддереву.
+# 4. Из поддерева выбираем только сотрудников (type = 3).
+#
+# Ограничение depth защищает от зацикливания, если в данных окажется цикл
+# (в PostgreSQL 10 клауза CYCLE ещё недоступна).
+SELECT_COLLEAGUES_BY_EMPLOYEE_ID = """
+    WITH RECURSIVE ancestors AS (
+        SELECT id, parent_id, type, 0 AS depth
         FROM employees
-        WHERE id = :employee_id
+        WHERE id = %(employee_id)s
 
         UNION ALL
 
-        SELECT e.id, e.parent_id, e.name, e.type
-        FROM employees e
-        INNER JOIN employee_hierarchy eh ON e.id = eh.parent_id
-        WHERE eh.type != 1
+        SELECT e.id, e.parent_id, e.type, a.depth + 1
+        FROM employees AS e
+        JOIN ancestors AS a ON e.id = a.parent_id
+        WHERE a.type <> 1
+          AND a.depth < 100
     ),
     office AS (
-        SELECT id FROM employee_hierarchy WHERE type = 1
+        SELECT id
+        FROM ancestors
+        WHERE type = 1
+        LIMIT 1
     ),
-    all_employees_in_office AS (
-
-        SELECT id, parent_id, name, type
+    office_tree AS (
+        SELECT id, parent_id, name, type, 0 AS depth
         FROM employees
-        WHERE id = (SELECT id FROM office)
+        WHERE id IN (SELECT id FROM office)
 
         UNION ALL
 
-        SELECT e.id, e.parent_id, e.name, e.type
-        FROM employees e
-        INNER JOIN all_employees_in_office aeo ON e.parent_id = aeo.id
+        SELECT e.id, e.parent_id, e.name, e.type, t.depth + 1
+        FROM employees AS e
+        JOIN office_tree AS t ON e.parent_id = t.id
+        WHERE t.depth < 100
     )
-    SELECT name FROM all_employees_in_office WHERE "type" = 3;
-    """
+    SELECT name
+    FROM office_tree
+    WHERE type = 3
+    ORDER BY id;
+"""

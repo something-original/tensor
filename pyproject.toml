@@ -1,24 +1,32 @@
 [project]
 name = "tensor"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Консольное приложение: выборка сотрудников офиса по id сотрудника"
 readme = "README.md"
 authors = [
     { name = "Georgiy Kiselev", email = "gsx2002@yandex.ru" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
-    "asyncpg>=0.32.0",
-    "fastapi>=0.165.0",
-    "load-dotenv>=0.1.0",
-    "psycopg-binary>=3.3.9",
-    "sqlalchemy[asyncio]>=2.1.9",
-    "uvicorn>=0.54.0",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.1",
 ]
 
 [project.scripts]
-tensor = "tensor:main"
+tensor = "tensor.cli:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
